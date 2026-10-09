@@ -1,0 +1,31 @@
+# Builds the Frontier render machine image on GitHub's computers and publishes it as
+# ghcr.io/<owner>/frontier-render. Runs when the recipe changes, or by hand (Actions → Run workflow).
+name: build render image
+on:
+  push:
+    paths: ["Dockerfile", "requirements.txt", ".github/workflows/build.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: tag
+        run: echo "date=$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/frontier-render:latest
+            ghcr.io/${{ github.repository_owner }}/frontier-render:${{ steps.tag.outputs.date }}
